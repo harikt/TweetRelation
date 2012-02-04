@@ -28,11 +28,12 @@ function buildRelation($id, $ch = null ) {
         'status_id' => $id
     );
     if( $contents->in_reply_to_status_id_str == null ) {
-        return $content;
+        $co[] = $content;
+        return;
     } else {
         $co[] = $content;
         // Recursion
-        $co[] = buildRelation($contents->in_reply_to_status_id_str, $ch);
+        buildRelation($contents->in_reply_to_status_id_str, $ch);
     }
     return $co;
 }
@@ -51,37 +52,41 @@ function buildRelation($id, $ch = null ) {
             <p>Fork me at <a href="https://github.com/harikt/TweetRelation">GitHub</a> <p>
         </div>
         <div>
-        <form method="post" action="<?= $_SERVER['PHP_SELF']; ?>" >
+        <form method="get" action="<?= $_SERVER['PHP_SELF']; ?>" enctype="application/x-www-form-urlencoded">
             <input type="text" name="status_url" id="status_url" size="90"/>
             <input type="submit" name="submit" value="show" />
         </form>
         </div>
         <div>
 <?php
-        if(! empty($_POST['status_url'])) {
-            $url = $_POST['status_url'];
-            $id = basename($url);
-            // create a new cURL resource
-            $ch = curl_init();
-            curl_setopt($ch, CURLOPT_HEADER, 0);
-            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-            // set URL and other appropriate options
-            $con = buildRelation($id, $ch);
-            // close cURL resource, and free up system resources
-            curl_close($ch);
-            $results = array_reverse($con, true);
-            if(! empty($results)) {
-                echo "<ul>";
-                foreach( $results as $result ) {
-                    //Sometimes the text becomes empty :P , why ? Want to look :D
-                    if(! empty($result['text']) ) {
-                        echo "<li>{$result['text']} 
-                        <a href=\"https://twitter.com/{$result['screen_name']}/status/{$result['status_id']}\">
-                            <img src=\"{$result['profile_image_url']}\" />
-                            </a></li>";
+        if(! empty($_GET['status_url'])) {
+            $url = $_GET['status_url'];
+            if ( filter_var($url , FILTER_VALIDATE_URL) !== false ) {
+                $id = basename($url);
+                // create a new cURL resource
+                $ch = curl_init();
+                curl_setopt($ch, CURLOPT_HEADER, 0);
+                curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+                // set URL and other appropriate options
+                $con = buildRelation($id, $ch);
+                // close cURL resource, and free up system resources
+                curl_close($ch);
+                $results = array_reverse($con, true);
+                if(! empty($results)) {
+                    echo "<ul>";
+                    foreach( $results as $result ) {
+                        //Sometimes the text becomes empty :P , why ? Want to look :D
+                        if(! empty($result['text']) ) {
+                            echo "<li>{$result['text']} 
+                            <a href=\"https://twitter.com/{$result['screen_name']}/status/{$result['status_id']}\">
+                                <img src=\"{$result['profile_image_url']}\" />
+                                </a></li>";
+                        }
                     }
+                    echo "</ul>";
                 }
-                echo "</ul>";
+            } else {
+                echo "Not a Valid URL :), feels right ? contact <a href=\"https://twitter.com/harikt\">@harikt</a> on twitter";
             }
         }
 ?>
